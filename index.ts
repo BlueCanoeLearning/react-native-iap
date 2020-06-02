@@ -98,6 +98,8 @@ interface ProductPurchase {
   originalTransactionDateIOS?: string;
   originalTransactionIdentifierIOS?: string;
   isAcknowledgedAndroid?: boolean;
+  isExpired?: boolean;
+  isRevoked?: boolean;
 }
 
 export interface PurchaseResult {
@@ -699,7 +701,7 @@ export const purchaseErrorListener = (
  * Get the current receipt base64 encoded in IOS.
  * @returns {Promise<string>}
  */
-export const getReceiptIOS = (): Promise<string> => {
+export const getReceiptIOS = (): Promise<{ transactionReceipt: string, isExpired?: boolean, isRevoked?: boolean }> => {
   if (Platform.OS === 'ios') {
     checkNativeiOSAvailable();
     return RNIapIos.requestReceipt();

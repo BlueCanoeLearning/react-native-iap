@@ -12,7 +12,7 @@
     dispatch_queue_t myQueue;
     BOOL hasListeners;
     BOOL pendingTransactionWithAutoFinish;
-    void (^receiptBlock)(NSData*, NSError*); // Block to handle request the receipt async from delegate
+    void (^receiptBlock)(NSData*, NSNumber *, NSNumber *, NSError*); // Block to handle request the receipt async from delegate
 }
 @end
 
@@ -291,9 +291,14 @@ RCT_EXPORT_METHOD(buyPromotedProduct:(RCTPromiseResolveBlock)resolve
 
 RCT_EXPORT_METHOD(requestReceipt:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
-    [self requestReceiptDataWithBlock:^(NSData *receiptData, NSError *error) {
+    [self requestReceiptDataWithBlock:^(NSData *receiptData, NSNumber *isExpired, NSNumber *isRevoked, NSError *error) {
         if (error == nil) {
-            resolve([receiptData base64EncodedStringWithOptions:0]);
+            NSMutableDictionary *result = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                           [receiptData base64EncodedStringWithOptions:0], @"transactionReceipt",
+                                           isExpired, @"isExpired",
+                                           isRevoked, @"isRevoked",
+                                           nil];
+            resolve(result);
         }
         else {
             reject([self standardErrorCode:9], @"Invalid receipt", nil);
@@ -307,7 +312,7 @@ RCT_EXPORT_METHOD(finishTransaction:(NSString*)transactionIdentifier) {
 
 RCT_EXPORT_METHOD(getPendingTransactions:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
-    [self requestReceiptDataWithBlock:^(NSData *receiptData, NSError *error) {
+    [self requestReceiptDataWithBlock:^(NSData *receiptData, NSNumber* isExpired, NSNumber* isRevoked, NSError *error) {
         if (receiptData == nil) {
             resolve(nil);
         }
@@ -323,6 +328,9 @@ RCT_EXPORT_METHOD(getPendingTransactions:(RCTPromiseResolveBlock)resolve
                                                  [receiptData base64EncodedStringWithOptions:0], @"transactionReceipt",
                                                  nil
                                                  ];
+                
+                purchase[@"isExpired"] = isExpired;
+                purchase[@"isRevoked"] = isRevoked;
                 [output addObject:purchase];
             }
 
@@ -372,7 +380,7 @@ RCT_EXPORT_METHOD(getPendingTransactions:(RCTPromiseResolveBlock)resolve
     if([request isKindOfClass:[SKReceiptRefreshRequest class]]) {
         if (receiptBlock != nil) {
             NSError *standardError = [[NSError alloc]initWithDomain:error.domain code:9 userInfo:error.userInfo];
-            receiptBlock(nil, standardError);
+            receiptBlock(nil, nil, nil, standardError);
             receiptBlock = nil;
             return;
         }
@@ -700,7 +708,7 @@ RCT_EXPORT_METHOD(getPendingTransactions:(RCTPromiseResolveBlock)resolve
 }
 
 - (void) getPurchaseData:(SKPaymentTransaction *)transaction withBlock:(void (^)(NSDictionary *transactionDict))block {
-    [self requestReceiptDataWithBlock:^(NSData *receiptData, NSError *error) {
+    [self requestReceiptDataWithBlock:^(NSData *receiptData, NSNumber* isExpired, NSNumber* isRevoked, NSError *error) {
         if (receiptData == nil) {
             block(nil);
         }
@@ -719,6 +727,8 @@ RCT_EXPORT_METHOD(getPendingTransactions:(RCTPromiseResolveBlock)resolve
                 purchase[@"originalTransactionDateIOS"] = @(originalTransaction.transactionDate.timeIntervalSince1970 * 1000);
                 purchase[@"originalTransactionIdentifierIOS"] = originalTransaction.transactionIdentifier;
             }
+            purchase[@"isExpired"] = isExpired;
+            purchase[@"isRevoked"] = isRevoked;
 
             block(purchase);
         }
@@ -733,7 +743,7 @@ static NSString *RCTKeyForInstance(id instance)
 
 #pragma mark - Receipt
 
-- (void) requestReceiptDataWithBlock:(void (^)(NSData *data, NSError *error))block {
+- (void) requestReceiptDataWithBlock:(void (^)(NSData *data, NSNumber* isExpired, NSNumber* isRevoked, NSError *error))block {
     if ([self isReceiptPresent] == NO) {
         SKReceiptRefreshRequest *refreshRequest = [[SKReceiptRefreshRequest alloc]init];
         refreshRequest.delegate = self;
@@ -742,7 +752,7 @@ static NSString *RCTKeyForInstance(id instance)
     }
     else {
         receiptBlock = nil;
-        block([self receiptData], nil);
+        block([self receiptData], nil, nil, nil);
     }
 }
 
@@ -766,13 +776,15 @@ static NSString *RCTKeyForInstance(id instance)
         if ([self isReceiptPresent] == YES) {
             NSLog(@"Receipt refreshed success.");
             if(receiptBlock) {
-                receiptBlock([self receiptData], nil);
+                NSNumber* isExpiredValue = ((SKReceiptRefreshRequest*)request).receiptProperties[SKReceiptPropertyIsExpired];
+                NSNumber* isRevokedValue = ((SKReceiptRefreshRequest*)request).receiptProperties[SKReceiptPropertyIsRevoked];
+                receiptBlock([self receiptData], isExpiredValue, isRevokedValue, nil);
             }
         }
         else if(receiptBlock) {
             NSLog(@"Finished but receipt refreshed failed!");
             NSError *error = [[NSError alloc]initWithDomain:@"Receipt request finished but it failed!" code:10 userInfo:nil];
-            receiptBlock(nil, error);
+            receiptBlock(nil, nil, nil, error);
         }
         receiptBlock = nil;
     }
