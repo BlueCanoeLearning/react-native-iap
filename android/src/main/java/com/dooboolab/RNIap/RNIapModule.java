@@ -603,4 +603,12 @@ public class RNIapModule extends ReactContextBaseJavaModule implements Purchases
         .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
         .emit(eventName, params);
   }
+
+  public List<SkuDetails> getSkuDetails() {
+    ArrayList<SkuDetails> copiedSkus = new ArrayList<SkuDetails>();
+    for (SkuDetails sku : skus) {
+      copiedSkus.add(sku);
+    }
+    return copiedSkus;
+  }
 }
