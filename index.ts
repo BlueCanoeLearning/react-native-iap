@@ -132,12 +132,14 @@ function checkNativeAndroidAvailable(): Promise<void> {
   if (!RNIapModule) {
     return Promise.reject(new Error(IAPErrorCode.E_IAP_NOT_AVAILABLE));
   }
+  return Promise.resolve();
 }
 
 function checkNativeiOSAvailable(): Promise<void> {
   if (!RNIapIos) {
     return Promise.reject(new Error(IAPErrorCode.E_IAP_NOT_AVAILABLE));
   }
+  return Promise.resolve();
 }
 /**
  * Init module for purchase flow. Required on Android. In ios it will check wheter user canMakePayment.
@@ -157,7 +159,7 @@ export const initConnection = (): Promise<boolean> =>
       }
       return RNIapModule.initConnection();
     },
-  })();
+  })!();
 
 /**
  * End module for purchase flow.
@@ -179,7 +181,7 @@ export const endConnection = (): Promise<void> =>
       }
       return RNIapModule.endConnection();
     },
-  })();
+  })!();
 
 /**
  * @deprecated
@@ -196,7 +198,7 @@ export const endConnectionAndroid = (): Promise<void> => {
       }
       return RNIapModule.endConnection();
     },
-  })();
+  })!();
 };
 
 /**
@@ -210,7 +212,7 @@ export const consumeAllItemsAndroid = (): Promise<string[]> =>
       checkNativeAndroidAvailable();
       return RNIapModule.refreshItems();
     },
-  })();
+  })!();
 
 /**
  * Get a list of products (consumable and non-consumable items, but not subscriptions)
@@ -233,7 +235,7 @@ export const getProducts = (skus: string[]): Promise<Product[]> =>
       }
       return RNIapModule.getItemsByType(ANDROID_ITEM_TYPE_IAP, skus);
     },
-  })();
+  })!();
 
 /**
  * Get a list of subscriptions
@@ -252,7 +254,7 @@ export const getSubscriptions = (skus: string[]): Promise<Subscription[]> =>
       checkNativeAndroidAvailable();
       return RNIapModule.getItemsByType(ANDROID_ITEM_TYPE_SUBSCRIPTION, skus);
     },
-  })();
+  })!();
 
 /**
  * Gets an invetory of purchases made by the user regardless of consumption status
@@ -276,7 +278,7 @@ InAppPurchase | SubscriptionPurchase
       );
       return products.concat(subscriptions);
     },
-  })();
+  })!();
 
 /**
  * Get all purchases made by the user (either non-consumable, or haven't been consumed yet)
@@ -300,7 +302,7 @@ InAppPurchase | SubscriptionPurchase
       );
       return products.concat(subscriptions);
     },
-  })();
+  })!();
 
 /**
  * Request a purchase for product. This will be received in `PurchaseUpdatedListener`.
@@ -344,7 +346,7 @@ export const requestPurchase = (
         accountIdAndroid,
       );
     },
-  })();
+  })!();
 
 /**
  * Request a purchase for product. This will be received in `PurchaseUpdatedListener`.
@@ -393,7 +395,7 @@ export const requestSubscription = (
         userIdAndroid,
       );
     },
-  })();
+  })!();
 
 /**
  * Request a purchase for product. This will be received in `PurchaseUpdatedListener`.
@@ -409,7 +411,7 @@ export const requestPurchaseWithQuantityIOS = (
       checkNativeiOSAvailable();
       return RNIapIos.buyProductWithQuantityIOS(sku, quantity);
     },
-  })();
+  })!();
 
 /**
  * Finish Transaction (iOS only)
@@ -425,7 +427,7 @@ export const finishTransactionIOS = (transactionId: string): Promise<void> =>
       checkNativeiOSAvailable();
       return RNIapIos.finishTransaction(transactionId);
     },
-  })();
+  })!();
 /**
  * Finish Transaction (both platforms)
  *   Abstracts `finishTransactionIOS`, `consumePurchaseAndroid`, `acknowledgePurchaseAndroid` in to one method.
@@ -466,7 +468,7 @@ export const finishTransaction = (
         throw new Error('purchase is not assigned');
       }
     },
-  })();
+  })!();
 };
 
 /**
@@ -483,7 +485,7 @@ export const clearTransactionIOS = (): Promise<void> => {
       return RNIapIos.clearTransaction();
     },
     android: async () => Promise.resolve(),
-  })();
+  })!();
 };
 
 /**
@@ -498,7 +500,7 @@ export const clearProductsIOS = (): void =>
       return RNIapIos.clearProducts();
     },
     android: async () => Promise.resolve,
-  })();
+  })!();
 
 /**
  * Acknowledge a product (on Android.) No-op on iOS.
@@ -515,7 +517,7 @@ export const acknowledgePurchaseAndroid = (
       checkNativeAndroidAvailable();
       return RNIapModule.acknowledgePurchase(token, developerPayload);
     },
-  })();
+  })!();
 
 /**
  * Consume a product (on Android.) No-op on iOS.
@@ -532,7 +534,7 @@ export const consumePurchaseAndroid = (
       checkNativeAndroidAvailable();
       return RNIapModule.consumeProduct(token, developerPayload);
     },
-  })();
+  })!();
 
 /**
  * Should Add Store Payment (iOS only)
@@ -546,7 +548,7 @@ export const getPromotedProductIOS = (): Promise<Product> =>
       return RNIapIos.promotedProduct();
     },
     android: async () => Promise.resolve(),
-  })();
+  })!();
 
 /**
  * Buy the currently selected promoted product (iOS only)
@@ -560,7 +562,7 @@ export const buyPromotedProductIOS = (): Promise<void> =>
       return RNIapIos.buyPromotedProduct();
     },
     android: async () => Promise.resolve(),
-  })();
+  })!();
 
 /**
  * Buy products or subscriptions with offers (iOS only)
@@ -588,7 +590,7 @@ export const requestPurchaseWithOfferIOS = (
       return RNIapIos.buyProductWithOffer(sku, forUser, withOffer);
     },
     android: async () => Promise.resolve(),
-  })();
+  })!();
 
 /**
  * Validate receipt for iOS.
@@ -704,6 +706,7 @@ export const getReceiptIOS = (): Promise<string> => {
     checkNativeiOSAvailable();
     return RNIapIos.requestReceipt();
   }
+  return Promise.resolve('');
 };
 
 /**
@@ -715,6 +718,7 @@ export const getPendingPurchasesIOS = (): Promise<ProductPurchase[]> => {
     checkNativeiOSAvailable();
     return RNIapIos.getPendingTransactions();
   }
+  return Promise.resolve([]);
 };
 
 const iapUtils = {
