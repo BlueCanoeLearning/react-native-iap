@@ -53,6 +53,7 @@ public class RNIapModule extends ReactContextBaseJavaModule implements Purchases
   private BillingClient billingClient;
 
   private List<SkuDetails> skus;
+  private PurchasesUpdatedListener purchaseUpdateCallback;
 
   private LifecycleEventListener lifecycleEventListener = new LifecycleEventListener() {
     @Override
@@ -71,6 +72,7 @@ public class RNIapModule extends ReactContextBaseJavaModule implements Purchases
         billingClient.endConnection();
         billingClient = null;
       }
+      purchaseUpdateCallback = null;
     }
   };
 
@@ -84,6 +86,10 @@ public class RNIapModule extends ReactContextBaseJavaModule implements Purchases
   @Override
   public String getName() {
     return "RNIapModule";
+  }
+
+  public void setPurchaseUpdateCallback(PurchasesUpdatedListener purchaseUpdateCallback) {
+    this.purchaseUpdateCallback = purchaseUpdateCallback;
   }
 
   private void ensureConnection (final Promise promise, final Runnable callback) {
@@ -519,6 +525,9 @@ public class RNIapModule extends ReactContextBaseJavaModule implements Purchases
 
   @Override
   public void onPurchasesUpdated(BillingResult billingResult, @Nullable List<Purchase> purchases) {
+    if (purchaseUpdateCallback != null) {
+      purchaseUpdateCallback.onPurchasesUpdated(billingResult, purchases);
+    }
     if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
       WritableMap error = Arguments.createMap();
       error.putInt("responseCode", billingResult.getResponseCode());
